@@ -48,13 +48,13 @@ python app.py
 Mở trình duyệt và truy cập:
 
 ```
-http://127.0.0.1:5000
+http://127.0.0.1:5001
 ```
 
 hoặc
 
 ```
-http://localhost:5000
+http://localhost:5001
 ```
 
 ## 🎯 Tính năng chính
@@ -70,8 +70,8 @@ http://localhost:5000
 clinic-management/
 ├── app.py              # File chính của ứng dụng
 ├── models.py           # Định nghĩa database models
+├── instance/clinic.db          # Database SQLite (tự động tạo)
 ├── requirements.txt    # Danh sách thư viện
-├── clinic.db          # Database SQLite (tự động tạo)
 └── README.md          # File hướng dẫn này
 ```
 
