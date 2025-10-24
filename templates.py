@@ -79,6 +79,25 @@ BASE_TEMPLATE = """
             font-weight: 700;
             font-size: 1.5rem;
         }
+        
+        .search-box {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .filter-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 5px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -182,7 +201,7 @@ DASHBOARD_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', 
                 </h2>
                 <p class="lead text-muted mb-4">
                     Hệ thống giúp bạn quản lý bệnh nhân, bác sĩ và lịch hẹn một cách hiệu quả và chuyên nghiệp. 
-                    Giao diện thân thiện, hiện đại với đầy đủ tính năng thêm, sửa, xóa.
+                    Giao diện thân thiện, hiện đại với đầy đủ tính năng thêm, sửa, xóa, tìm kiếm và lọc.
                 </p>
                 <div class="d-flex gap-3">
                     <a href="{{ url_for('patients') }}" class="btn btn-primary btn-lg">
@@ -265,6 +284,40 @@ PATIENTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', "
 
             <!-- List -->
             <div class="col-lg-8">
+                <!-- Search Box -->
+                <div class="search-box">
+                    <form method="GET" action="{{ url_for('patients') }}">
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label class="form-label mb-1">
+                                    <i class="bi bi-search"></i> Tìm kiếm bệnh nhân
+                                </label>
+                                <input type="text" name="search" class="form-control" 
+                                       value="{{ search }}" 
+                                       placeholder="Tìm theo tên, số điện thoại, địa chỉ...">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> Tìm
+                                </button>
+                                {% if search %}
+                                <a href="{{ url_for('patients') }}" class="btn btn-secondary">
+                                    <i class="bi bi-x-lg"></i> Xóa
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                    
+                    {% if search %}
+                    <div class="mt-2">
+                        <span class="filter-badge">
+                            <i class="bi bi-funnel"></i> Tìm kiếm: "{{ search }}"
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">
@@ -286,27 +339,40 @@ PATIENTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', "
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for p in patients %}
-                                    <tr>
-                                        <td><strong>#{{ p.id }}</strong></td>
-                                        <td><strong>{{ p.name }}</strong></td>
-                                        <td>{{ p.phone or '-' }}</td>
-                                        <td>{{ p.age if p.age else '-' }}</td>
-                                        <td>{{ p.address or '-' }}</td>
-                                        <td class="text-end">
-                                            <a href="{{ url_for('patient_edit', id=p.id) }}" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <form method="POST" action="{{ url_for('patient_delete', id=p.id) }}" 
-                                                  onsubmit="return confirm('Xác nhận xóa bệnh nhân {{ p.name }}?')" 
-                                                  class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                    {% if patients %}
+                                        {% for p in patients %}
+                                        <tr>
+                                            <td><strong>#{{ p.id }}</strong></td>
+                                            <td><strong>{{ p.name }}</strong></td>
+                                            <td>{{ p.phone or '-' }}</td>
+                                            <td>{{ p.age if p.age else '-' }}</td>
+                                            <td>{{ p.address or '-' }}</td>
+                                            <td class="text-end">
+                                                <a href="{{ url_for('patient_edit', id=p.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form method="POST" action="{{ url_for('patient_delete', id=p.id) }}" 
+                                                      onsubmit="return confirm('Xác nhận xóa bệnh nhân {{ p.name }}?')" 
+                                                      class="d-inline">
+                                                    <button type="submit" class="btn btn-sm btn-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                                {% if search %}
+                                                    Không tìm thấy bệnh nhân nào phù hợp
+                                                {% else %}
+                                                    Chưa có bệnh nhân nào
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
@@ -394,6 +460,99 @@ APPOINTMENTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
             </div>
         </div>
 
+        <!-- Filter Box -->
+        <div class="search-box">
+            <form method="GET" action="{{ url_for('appointments') }}" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">
+                            <i class="bi bi-calendar"></i> Từ ngày
+                        </label>
+                        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">
+                            <i class="bi bi-calendar"></i> Đến ngày
+                        </label>
+                        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">
+                            <i class="bi bi-person-badge"></i> Bác sĩ
+                        </label>
+                        <select name="doctor_id" class="form-select">
+                            <option value="">-- Tất cả --</option>
+                            {% for d in doctors %}
+                                <option value="{{ d.id }}" {% if doctor_filter == d.id|string %}selected{% endif %}>
+                                    {{ d.display_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">
+                            <i class="bi bi-clipboard-check"></i> Trạng thái
+                        </label>
+                        <select name="status" class="form-select">
+                            <option value="">-- Tất cả --</option>
+                            <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Đã đặt</option>
+                            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Hoàn thành</option>
+                            <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">
+                            <i class="bi bi-search"></i> Tìm bệnh nhân
+                        </label>
+                        <input type="text" name="patient_search" class="form-control" 
+                               value="{{ patient_search }}" 
+                               placeholder="Nhập tên bệnh nhân...">
+                    </div>
+                    
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-funnel"></i> Lọc
+                        </button>
+                        <a href="{{ url_for('appointments') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> Đặt lại
+                        </a>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Active Filters Display -->
+            {% if date_from or date_to or status_filter or doctor_filter or patient_search %}
+            <div class="mt-3">
+                <strong><i class="bi bi-funnel-fill"></i> Bộ lọc đang áp dụng:</strong>
+                {% if date_from %}
+                    <span class="filter-badge">Từ: {{ date_from }}</span>
+                {% endif %}
+                {% if date_to %}
+                    <span class="filter-badge">Đến: {{ date_to }}</span>
+                {% endif %}
+                {% if status_filter %}
+                    <span class="filter-badge">
+                        Trạng thái: 
+                        {% if status_filter == 'scheduled' %}Đã đặt
+                        {% elif status_filter == 'completed' %}Hoàn thành
+                        {% elif status_filter == 'cancelled' %}Đã hủy
+                        {% endif %}
+                    </span>
+                {% endif %}
+                {% if doctor_filter %}
+                    <span class="filter-badge">Bác sĩ: ID #{{ doctor_filter }}</span>
+                {% endif %}
+                {% if patient_search %}
+                    <span class="filter-badge">Bệnh nhân: "{{ patient_search }}"</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
         <!-- List -->
         <div class="card">
             <div class="card-header bg-success text-white">
@@ -417,29 +576,42 @@ APPOINTMENTS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for a in appointments %}
-                            <tr>
-                                <td><strong>#{{ a.id }}</strong></td>
-                                <td><strong>{{ a.formatted_datetime }}</strong></td>
-                                <td>{{ a.patient.display_name }}</td>
-                                <td>{{ a.doctor.display_name }}</td>
-                                <td>{{ a.reason or '-' }}</td>
-                                <td>
-                                    <span class="badge bg-{{ a.status_badge }}">
-                                        {{ a.status_text }}
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <form method="POST" action="{{ url_for('appointment_delete', id=a.id) }}" 
-                                          onsubmit="return confirm('Xác nhận xóa lịch hẹn này?')" 
-                                          class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            {% if appointments %}
+                                {% for a in appointments %}
+                                <tr>
+                                    <td><strong>#{{ a.id }}</strong></td>
+                                    <td><strong>{{ a.formatted_datetime }}</strong></td>
+                                    <td>{{ a.patient.display_name }}</td>
+                                    <td>{{ a.doctor.display_name }}</td>
+                                    <td>{{ a.reason or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ a.status_badge }}">
+                                            {{ a.status_text }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="POST" action="{{ url_for('appointment_delete', id=a.id) }}" 
+                                              onsubmit="return confirm('Xác nhận xóa lịch hẹn này?')" 
+                                              class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                        {% if date_from or date_to or status_filter or doctor_filter or patient_search %}
+                                            Không tìm thấy lịch hẹn nào phù hợp với bộ lọc
+                                        {% else %}
+                                            Chưa có lịch hẹn nào
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>

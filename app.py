@@ -82,11 +82,25 @@ def create_app():
             flash(f'Thêm bệnh nhân {name} thành công!', 'success')
             return redirect(url_for('patients'))
         
-        patients_list = Patient.query.order_by(Patient.created_at.desc()).all()
+        # TÌM KIẾM BỆNH NHÂN
+        search = request.args.get('search', '').strip()
+        query = Patient.query
+        
+        if search:
+            search_filter = db.or_(
+                Patient.name.ilike(f'%{search}%'),
+                Patient.phone.ilike(f'%{search}%'),
+                Patient.address.ilike(f'%{search}%')
+            )
+            query = query.filter(search_filter)
+        
+        patients_list = query.order_by(Patient.created_at.desc()).all()
+        
         return render_template_string(
             PATIENTS_TEMPLATE,
             patients=patients_list,
-            edit_patient=None
+            edit_patient=None,
+            search=search
         )
 
     @app.route('/patients/edit/<int:id>', methods=['GET', 'POST'])
@@ -114,7 +128,8 @@ def create_app():
         return render_template_string(
             PATIENTS_TEMPLATE,
             patients=patients_list,
-            edit_patient=patient
+            edit_patient=patient,
+            search=''
         )
 
     @app.route('/patients/delete/<int:id>', methods=['POST'])
@@ -160,9 +175,49 @@ def create_app():
             flash('Tạo lịch hẹn thành công!', 'success')
             return redirect(url_for('appointments'))
         
-        appointments_list = Appointment.query.order_by(
+        # LỌC LỊCH HẸN
+        query = Appointment.query
+        
+        # Lọc theo ngày
+        date_from = request.args.get('date_from', '').strip()
+        date_to = request.args.get('date_to', '').strip()
+        
+        if date_from:
+            try:
+                from_dt = datetime.strptime(date_from, '%Y-%m-%d')
+                query = query.filter(Appointment.appointment_datetime >= from_dt)
+            except:
+                pass
+        
+        if date_to:
+            try:
+                to_dt = datetime.strptime(date_to, '%Y-%m-%d')
+                to_dt = to_dt.replace(hour=23, minute=59, second=59)
+                query = query.filter(Appointment.appointment_datetime <= to_dt)
+            except:
+                pass
+        
+        # Lọc theo trạng thái
+        status_filter = request.args.get('status', '').strip()
+        if status_filter:
+            query = query.filter(Appointment.status == status_filter)
+        
+        # Lọc theo bác sĩ
+        doctor_filter = request.args.get('doctor_id', '').strip()
+        if doctor_filter:
+            query = query.filter(Appointment.doctor_id == doctor_filter)
+        
+        # Lọc theo bệnh nhân (tìm kiếm tên)
+        patient_search = request.args.get('patient_search', '').strip()
+        if patient_search:
+            query = query.join(Patient).filter(
+                Patient.name.ilike(f'%{patient_search}%')
+            )
+        
+        appointments_list = query.order_by(
             Appointment.appointment_datetime.desc()
         ).all()
+        
         patients_list = Patient.query.order_by(Patient.name).all()
         doctors_list = Doctor.query.order_by(Doctor.name).all()
         
@@ -170,7 +225,12 @@ def create_app():
             APPOINTMENTS_TEMPLATE,
             appointments=appointments_list,
             patients=patients_list,
-            doctors=doctors_list
+            doctors=doctors_list,
+            date_from=date_from,
+            date_to=date_to,
+            status_filter=status_filter,
+            doctor_filter=doctor_filter,
+            patient_search=patient_search
         )
 
     @app.route('/appointments/delete/<int:id>', methods=['POST'])
